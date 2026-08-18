@@ -97,5 +97,30 @@ document.getElementById('clientForm').addEventListener('submit',async e=>{
   const {error}=await supabaseClient.from('clients').insert({name:d.get('name'),phone:d.get('phone'),email:d.get('email'),notes:d.get('notes')});
   if(error){showToast(error.message);return}e.currentTarget.reset();showToast('Client added.');loadAdminClients();
 });
+
+/* V5 content fixes requested by the owner. */
+function updateV5Content(){
+  /* MY STORY: remove all My Story pictures and short videos; keep only the supplied 3-minute video. */
+  const story=document.getElementById('story');
+  const gallery=document.querySelector('.story-gallery');
+  if(gallery)gallery.remove();
+  if(story){
+    const media=story.querySelector('.story-media');
+    if(media){media.innerHTML='<video controls playsinline preload="metadata" poster="assets/my-story/posters/my-story-01.jpg"><source src="assets/my-story/videos/my-story-01.mp4" type="video/mp4"></video>';media.classList.add('cc-v5-story-only-video')}
+    const copy=story.querySelector('.story-heading');
+    if(copy){const ps=copy.querySelectorAll('p:not(.eyebrow)');if(ps.length)ps[ps.length-1].textContent='The full My Story is told in the supplied three-minute video. The additional My Story pictures and shorter videos have been intentionally removed from this section.'}
+  }
+  /* LEGENDS BARBER SPONSORSHIP: add the story from the supplied article. */
+  const sponsor=document.getElementById('sponsorship');
+  if(sponsor&&!document.getElementById('ccV5ArticleStory')){
+    const article=document.createElement('div');article.id='ccV5ArticleStory';article.className='cc-v5-article-story';
+    article.innerHTML='<h3>A GIFT THAT MEANT MORE THAN EQUIPMENT.</h3><p><strong>Legends Barber founder Sheldon Tatchell</strong> donated barbershop equipment to an Eden Park youngster. Besides running multiple successful businesses, Sheldon is known for charitable causes aimed at uplifting the youth.</p><p>“Today, I am in Eden Park visiting a barber who just recovered from drug abuse. He now tries to rebuild his life, cutting hair from his home. I came to bless him with equipment, but more than that, I am here to give him hope.”</p><p><strong>— Sheldon Tatchell</strong></p>';
+    sponsor.appendChild(article);
+  }
+  /* Give every sponsorship video its own supplied poster so duplicate thumbnails cannot be reused. */
+  document.querySelectorAll('#sponsorship video').forEach((video,i)=>{const n=i+1;if(!video.getAttribute('poster'))video.setAttribute('poster',`assets/sponsorship/posters/sponsorship-0${n}.jpg`)});
+}
+
 loadReviews();
 if(supabaseClient){supabaseClient.auth.onAuthStateChange(()=>refreshAdmin())}
+updateV5Content();
