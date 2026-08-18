@@ -1,50 +1,63 @@
-/* Crosses & Clippers V5 enhancement layer. Keeps the V4 HTML/design and adds the requested live review/owner/client workflow. */
-(function(){
-  const REVIEW_KEY='cc_v5_reviews';
-  const CLIENT_KEY='cc_v5_clients';
-  const OWNER_KEY='cc_v5_owner';
-  const safe=(s)=>String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
+(() => {
+  const REVIEW_KEY='cc_reviews';
+  const CLIENT_KEY='cc_clients';
+  const OWNER_KEY='cc_owner';
+  const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
   const put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-  const star=n=>'★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const stars=n=>'★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n);
 
-  function injectStyle(){
-    if(document.getElementById('cc-v5-style'))return;
-    const s=document.createElement('style');s.id='cc-v5-style';s.textContent=`
-      #ccReviewSystem{max-width:1320px;margin:auto;padding:100px 7vw;background:#0b0b0b}.cc-review-layout{display:grid;grid-template-columns:.8fr 1.2fr;gap:55px}.cc-review-card,.cc-review-form,.cc-owner-card{border:1px solid #292929;background:#111;padding:28px}.cc-review-card{margin-bottom:10px}.cc-review-stars{color:#d5bd8b;letter-spacing:2px}.cc-review-meta{font-size:9px;color:#777;letter-spacing:.08em}.cc-review-card p{color:#aaa;line-height:1.75}.cc-review-form label,.cc-owner-card label{display:grid;gap:7px;font-size:8px;letter-spacing:.15em;color:#777;margin-bottom:12px}.cc-review-form input,.cc-review-form textarea,.cc-review-form select,.cc-owner-card input{padding:13px;border:1px solid #333;background:#080808;color:#f3f0e9;font:inherit}.cc-review-form textarea{min-height:120px}.cc-review-btn{border:1px solid #f3f0e9;background:#f3f0e9;color:#111;padding:14px 18px;font-size:9px;font-weight:700;letter-spacing:.14em;cursor:pointer}.cc-owner-panel{display:none;margin-top:15px}.cc-owner-panel.show{display:block}.cc-admin-row{display:flex;justify-content:space-between;gap:15px;padding:13px 0;border-bottom:1px solid #222;color:#aaa;font-size:11px}.cc-admin-row button{border:1px solid #555;background:none;color:#eee;padding:7px 10px;font-size:8px;cursor:pointer}.cc-admin-row .approve{color:#d5bd8b;border-color:#d5bd8b}.cc-owner-modal{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:160;display:none;place-items:center;padding:20px}.cc-owner-modal.show{display:grid}.cc-owner-modal>div{width:min(500px,100%);background:#f3f0e9;color:#111;padding:35px}.cc-owner-modal input{display:block;width:100%;padding:13px;margin:7px 0 15px;border:1px solid #ccc}.cc-close{float:right;border:0;background:none;font-size:18px;cursor:pointer}.cc-article-story{margin-top:35px;padding:28px;border:1px solid #292929;background:#111;color:#aaa;line-height:1.85}.cc-article-story strong{color:#d5bd8b}.cc-article-story h3{font-family:Oswald,sans-serif;font-size:42px;color:#f3f0e9;margin:0 0 15px}.cc-story-only-video video{width:100%;min-height:500px;object-fit:cover;display:block}.cc-story-only-video{max-width:1320px;margin:auto;padding:0 7vw 100px;background:#0b0b0b}.cc-story-only-video figcaption{padding:12px 0;font-size:9px;letter-spacing:.15em;color:#777}.cc-hide-story-media{display:none!important}@media(max-width:900px){.cc-review-layout{grid-template-columns:1fr}.cc-story-only-video{padding-left:6vw;padding-right:6vw}.cc-story-only-video video{min-height:380px}}@media(max-width:600px){#ccReviewSystem{padding:80px 6vw}.cc-story-only-video video{min-height:260px}.cc-admin-row{flex-direction:column}}
-    `;document.head.appendChild(s);
+  function initBooking(){
+    const modal=document.getElementById('booking');
+    document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>modal?.classList.add('show')));
+    document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>modal?.classList.remove('show')));
+    modal?.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
+    document.getElementById('bookingForm')?.addEventListener('submit',e=>{
+      e.preventDefault();const f=new FormData(e.currentTarget);
+      const msg=`Hi Davian, I'd like to book a cut with Crosses & Clippers.%0A%0AName: ${encodeURIComponent(f.get('name'))}%0APhone: ${encodeURIComponent(f.get('phone'))}%0AService: ${encodeURIComponent(f.get('service'))}%0ADate: ${encodeURIComponent(f.get('date'))}%0ATime: ${encodeURIComponent(f.get('time'))}%0ANotes: ${encodeURIComponent(f.get('notes')||'')}`;
+      window.open(`https://wa.me/27716369939?text=${msg}`,'_blank','noopener');
+      modal?.classList.remove('show');e.currentTarget.reset();
+    });
   }
 
-  function fixMyStory(){
-    const story=document.getElementById('story');if(!story)return;
-    // Hide all existing My Story image/video gallery material; retain the section text and add exactly one 3-minute video.
-    const gallery=document.querySelector('.story-gallery');if(gallery)gallery.remove();
-    story.querySelectorAll('img, .story-media').forEach(el=>el.classList.add('cc-hide-story-media'));
-    if(!document.getElementById('ccStoryVideo')){
-      const wrap=document.createElement('div');wrap.id='ccStoryVideo';wrap.className='cc-story-only-video';
-      wrap.innerHTML='<figure style="margin:0"><video controls playsinline preload="metadata" poster="assets/my-story/posters/my-story-01.jpg"><source src="assets/my-story/videos/my-story-01.mp4" type="video/mp4"></video><figcaption>MY STORY • THE FULL 3-MINUTE STORY</figcaption></figure>';
-      story.after(wrap);
-    }
+  function initMobile(){
+    const nav=document.querySelector('.nav nav'),hamb=document.querySelector('.hamb');
+    if(!nav||!hamb)return;
+    hamb.addEventListener('click',()=>{nav.style.display=nav.style.display==='flex'?'':'flex';nav.style.position='absolute';nav.style.top='78px';nav.style.left='0';nav.style.right='0';nav.style.padding='22px 6vw';nav.style.background='#090909';nav.style.flexDirection='column';nav.style.alignItems='flex-start';});
+    nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{if(innerWidth<=950)nav.style.display=''}));
   }
 
-  function addArticleStory(){
-    const sponsor=document.getElementById('sponsorship');if(!sponsor||document.getElementById('ccArticleStory'))return;
-    const box=document.createElement('div');box.id='ccArticleStory';box.className='cc-article-story';
-    box.innerHTML='<h3>A GIFT THAT MEANT MORE THAN EQUIPMENT.</h3><p><strong>Legends Barber founder Sheldon Tatchell</strong> donated barbershop equipment to an Eden Park youngster. Besides running multiple successful businesses, Sheldon is known for charitable causes aimed at uplifting the youth.</p><p>“Today, I am in Eden Park visiting a barber who just recovered from drug abuse. He now tries to rebuild his life, cutting hair from his home. I came to bless him with equipment, but more than that, I am here to give him hope.”</p><p><strong>— Sheldon Tatchell</strong></p>';
-    sponsor.appendChild(box);
+  function initReviews(){
+    const form=document.getElementById('reviewForm'),list=document.getElementById('reviewsList'),rating=document.getElementById('ratingStars');
+    if(!form||!list)return;
+    let selected=0;
+    rating?.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{selected=Number(btn.dataset.rating);rating.querySelectorAll('button').forEach(x=>x.classList.toggle('active',Number(x.dataset.rating)<=selected))}));
+    const render=()=>{
+      const reviews=get(REVIEW_KEY,[]).filter(r=>r.approved);
+      list.innerHTML=reviews.length?reviews.map(r=>`<article class="v5-review"><div class="stars">${stars(r.rating)}</div><small>${esc(r.name)} • ${new Date(r.createdAt).toLocaleDateString()}</small><p>${esc(r.comment)}</p></article>`).join(''):'<div class="v5-review"><p>No approved reviews yet. Be the first to share your experience.</p></div>';
+      renderAdmin();
+    };
+    form.addEventListener('submit',e=>{e.preventDefault();if(!selected)return alert('Please select a star rating.');const f=new FormData(form);const id=(crypto.randomUUID?.()||Date.now().toString());const review={id,name:f.get('name'),email:f.get('email'),rating:selected,comment:f.get('comment'),approved:false,createdAt:new Date().toISOString()};const reviews=get(REVIEW_KEY,[]);reviews.unshift(review);put(REVIEW_KEY,reviews);const clients=get(CLIENT_KEY,[]);clients.unshift({id,name:review.name,email:review.email,createdAt:review.createdAt});put(CLIENT_KEY,clients);selected=0;rating?.querySelectorAll('button').forEach(x=>x.classList.remove('active'));form.reset();alert('Thank you. Your review has been submitted for owner approval.');render();});
+    render();
   }
 
-  function buildReviews(){
-    if(document.getElementById('ccReviewSystem'))return;
-    const section=document.createElement('section');section.id='ccReviewSystem';
-    section.innerHTML=`<div class="section-title"><p class="eyebrow">CLIENT FEEDBACK</p><h2>REAL <em>REVIEWS.</em></h2></div><div class="cc-review-layout"><div><div class="cc-review-form"><p class="eyebrow">SHARE YOUR EXPERIENCE</p><form id="ccReviewForm"><label>NAME<input name="name" required maxlength="80" placeholder="Your name"></label><label>EMAIL<input name="email" type="email" maxlength="160" placeholder="Optional"></label><label>RATING<select name="rating" required><option value="">Choose</option><option value="5">5 — Excellent</option><option value="4">4 — Great</option><option value="3">3 — Good</option><option value="2">2 — Fair</option><option value="1">1 — Poor</option></select></label><label>COMMENT<textarea name="comment" required maxlength="1200" placeholder="Tell us about your experience"></textarea></label><button class="cc-review-btn" type="submit">SUBMIT REVIEW ↗</button><p class="form-note">Reviews are moderated before appearing publicly.</p></form></div><div class="cc-owner-card" style="margin-top:12px"><p class="eyebrow">OWNER AREA</p><p class="form-note">Owner login manages review approvals and the local client records created through this browser.</p><button class="cc-review-btn" id="ccOwnerOpen">OWNER LOGIN</button><div class="cc-owner-panel" id="ccOwnerPanel"><div id="ccAdminReviews"></div><div id="ccClients" style="margin-top:25px"></div></div></div></div><div id="ccReviewsList"></div></div>`;
-    const contact=document.getElementById('contact');contact?contact.before(section):document.querySelector('main').appendChild(section);
-    document.getElementById('ccReviewForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const review={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name:f.get('name'),email:f.get('email'),rating:Number(f.get('rating')),comment:f.get('comment'),approved:false,createdAt:new Date().toISOString()};const rs=get(REVIEW_KEY,[]);rs.unshift(review);put(REVIEW_KEY,rs);const clients=get(CLIENT_KEY,[]);clients.unshift({id:review.id,name:review.name,email:review.email,createdAt:review.createdAt});put(CLIENT_KEY,clients);e.target.reset();renderReviews();alert('Thank you. Your review has been submitted for approval.');};
-    renderReviews();
+  function renderAdmin(){
+    const panel=document.getElementById('adminPanel'),reviewsBox=document.getElementById('adminReviews'),clientsBox=document.getElementById('clientsPanel');if(!panel||!reviewsBox||!clientsBox)return;
+    const reviews=get(REVIEW_KEY,[]),clients=get(CLIENT_KEY,[]);
+    reviewsBox.innerHTML='<p class="eyebrow">REVIEW MANAGEMENT</p>'+(reviews.length?reviews.map(r=>`<div class="v5-admin-row"><span><b>${esc(r.name)}</b> — ${stars(r.rating)}<br>${esc(r.comment)}</span><span>${r.approved?'':'<button class="approve" data-approve="'+r.id+'">APPROVE</button>'}<button data-delete="${r.id}">DELETE</button></span></div>`).join(''):'<p class="v5-login-note">No reviews yet.</p>');
+    reviewsBox.querySelectorAll('[data-approve]').forEach(b=>b.onclick=()=>{const a=get(REVIEW_KEY,[]);const r=a.find(x=>x.id===b.dataset.approve);if(r)r.approved=true;put(REVIEW_KEY,a);initReviews()});
+    reviewsBox.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{put(REVIEW_KEY,get(REVIEW_KEY,[]).filter(x=>x.id!==b.dataset.delete));initReviews()});
+    clientsBox.innerHTML='<p class="eyebrow">CLIENT DATABASE</p><p class="v5-login-note">'+clients.length+' client record(s).</p>'+(clients.length?clients.map(c=>`<div class="v5-admin-row"><span><b>${esc(c.name)}</b><br>${esc(c.email||'No email')}</span></div>`).join(''):'<p class="v5-login-note">No client records yet.</p>');
   }
-  function renderReviews(){const box=document.getElementById('ccReviewsList');if(!box)return;const rs=get(REVIEW_KEY,[]).filter(r=>r.approved);box.innerHTML=rs.length?rs.map(r=>`<article class="cc-review-card"><div class="cc-review-stars">${star(r.rating)}</div><div class="cc-review-meta">${safe(r.name)} • ${new Date(r.createdAt).toLocaleDateString()}</div><p>${safe(r.comment)}</p></article>`).join(''):'<div class="cc-review-card"><p>No approved reviews yet. Be the first to share your experience.</p></div>';if(document.getElementById('ccOwnerPanel')?.classList.contains('show'))renderAdmin();}
-  function renderAdmin(){const box=document.getElementById('ccAdminReviews'),clients=document.getElementById('ccClients');if(!box)return;const rs=get(REVIEW_KEY,[]);box.innerHTML='<p class="eyebrow">REVIEW MANAGEMENT</p>'+ (rs.length?rs.map(r=>`<div class="cc-admin-row"><span><b>${safe(r.name)}</b> — ${star(r.rating)}<br>${safe(r.comment)}</span><span>${r.approved?'':'<button class="approve" data-approve="'+r.id+'">APPROVE</button>'}<button data-delete="'+r.id+'">DELETE</button></span></div>`).join(''):'<p>No reviews.</p>');box.querySelectorAll('[data-approve]').forEach(b=>b.onclick=()=>{const a=get(REVIEW_KEY,[]);const r=a.find(x=>x.id===b.dataset.approve);if(r)r.approved=true;put(REVIEW_KEY,a);renderReviews()});box.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{put(REVIEW_KEY,get(REVIEW_KEY,[]).filter(x=>x.id!==b.dataset.delete));renderReviews()});const cs=get(CLIENT_KEY,[]);clients.innerHTML='<p class="eyebrow">CLIENT DATABASE</p><p class="form-note">'+cs.length+' client record(s) stored in this browser.</p>'+cs.map(c=>`<div class="cc-admin-row"><span><b>${safe(c.name)}</b><br>${safe(c.email||'')}</span></div>`).join('');}
-  function ownerModal(){const m=document.createElement('div');m.className='cc-owner-modal';m.id='ccOwnerModal';m.innerHTML='<div><button class="cc-close" id="ccOwnerClose">✕</button><p class="eyebrow">PRIVATE AREA</p><h2 style="font-family:Oswald;font-size:55px;margin:10px 0 20px">OWNER <em>LOGIN.</em></h2><form id="ccOwnerForm"><label style="color:#666;font-size:8px;letter-spacing:.15em">EMAIL<input id="ccOwnerEmail" type="email" required></label><label style="color:#666;font-size:8px;letter-spacing:.15em">PASSWORD<input id="ccOwnerPass" type="password" required></label><button class="cc-review-btn" type="submit">SIGN IN</button><p class="form-note">This GitHub Pages fallback keeps owner credentials and client data in this browser. For real private client data, connect Supabase Auth/Database before launch.</p></form></div>';document.body.appendChild(m);document.getElementById('ccOwnerOpen').onclick=()=>m.classList.add('show');document.getElementById('ccOwnerClose').onclick=()=>m.classList.remove('show');document.getElementById('ccOwnerForm').onsubmit=e=>{e.preventDefault();const email=document.getElementById('ccOwnerEmail').value.trim();const pass=document.getElementById('ccOwnerPass').value;if(pass.length<6)return alert('Use at least 6 characters.');const saved=get(OWNER_KEY,null);if(!saved){put(OWNER_KEY,{email,password:pass});openOwner();m.classList.remove('show');alert('Owner account created on this browser.')}else if(saved.email===email&&saved.password===pass){openOwner();m.classList.remove('show')}else alert('Owner login details do not match this browser.')}};
-  function openOwner(){document.getElementById('ccOwnerPanel').classList.add('show');renderAdmin();}
-  document.addEventListener('DOMContentLoaded',()=>{injectStyle();fixMyStory();addArticleStory();buildReviews();ownerModal();});
+
+  function initOwner(){
+    const modal=document.getElementById('ownerModal'),open=document.getElementById('ownerLoginBtn'),close=document.getElementById('ownerClose'),form=document.getElementById('ownerForm'),panel=document.getElementById('adminPanel');
+    if(!modal||!open||!form)return;
+    open.onclick=()=>modal.classList.add('show');close&&(close.onclick=()=>modal.classList.remove('show'));
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
+    form.addEventListener('submit',e=>{e.preventDefault();const email=document.getElementById('ownerEmail').value.trim().toLowerCase(),password=document.getElementById('ownerPassword').value,saved=get(OWNER_KEY,null);if(password.length<6)return alert('Password must be at least 6 characters.');if(!saved){put(OWNER_KEY,{email,password});panel.classList.add('show');modal.classList.remove('show');renderAdmin();alert('Owner account created on this browser.');return}if(saved.email!==email||saved.password!==password)return alert('Owner login details do not match.');panel.classList.add('show');modal.classList.remove('show');renderAdmin();});
+  }
+
+  function init(){initBooking();initMobile();initReviews();initOwner();}
+  document.addEventListener('DOMContentLoaded',init);
 })();
