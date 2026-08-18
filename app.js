@@ -1,63 +1,101 @@
-(() => {
-  const REVIEW_KEY='cc_reviews';
-  const CLIENT_KEY='cc_clients';
-  const OWNER_KEY='cc_owner';
-  const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
-  const put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const stars=n=>'★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n);
+const booking=document.getElementById('booking');
+const adminModal=document.getElementById('adminModal');
+const toast=document.getElementById('toast');
+const sbReady=window.CC_SUPABASE_URL && !window.CC_SUPABASE_URL.includes('YOUR_') && window.CC_SUPABASE_ANON_KEY && !window.CC_SUPABASE_ANON_KEY.includes('YOUR_');
+const supabaseClient=sbReady && window.supabase ? window.supabase.createClient(window.CC_SUPABASE_URL,window.CC_SUPABASE_ANON_KEY) : null;
 
-  function initBooking(){
-    const modal=document.getElementById('booking');
-    document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>modal?.classList.add('show')));
-    document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>modal?.classList.remove('show')));
-    modal?.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
-    document.getElementById('bookingForm')?.addEventListener('submit',e=>{
-      e.preventDefault();const f=new FormData(e.currentTarget);
-      const msg=`Hi Davian, I'd like to book a cut with Crosses & Clippers.%0A%0AName: ${encodeURIComponent(f.get('name'))}%0APhone: ${encodeURIComponent(f.get('phone'))}%0AService: ${encodeURIComponent(f.get('service'))}%0ADate: ${encodeURIComponent(f.get('date'))}%0ATime: ${encodeURIComponent(f.get('time'))}%0ANotes: ${encodeURIComponent(f.get('notes')||'')}`;
-      window.open(`https://wa.me/27716369939?text=${msg}`,'_blank','noopener');
-      modal?.classList.remove('show');e.currentTarget.reset();
-    });
-  }
+function showToast(message){toast.textContent=message;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3500)}
+function showModal(el){el.classList.add('show');document.body.style.overflow='hidden'}
+function hideModal(el){el.classList.remove('show');document.body.style.overflow=''}
 
-  function initMobile(){
-    const nav=document.querySelector('.nav nav'),hamb=document.querySelector('.hamb');
-    if(!nav||!hamb)return;
-    hamb.addEventListener('click',()=>{nav.style.display=nav.style.display==='flex'?'':'flex';nav.style.position='absolute';nav.style.top='78px';nav.style.left='0';nav.style.right='0';nav.style.padding='22px 6vw';nav.style.background='#090909';nav.style.flexDirection='column';nav.style.alignItems='flex-start';});
-    nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{if(innerWidth<=950)nav.style.display=''}));
-  }
+document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>showModal(booking)));
+document.querySelector('[data-close]').addEventListener('click',()=>hideModal(booking));
+booking.addEventListener('click',e=>{if(e.target===booking)hideModal(booking)});
 
-  function initReviews(){
-    const form=document.getElementById('reviewForm'),list=document.getElementById('reviewsList'),rating=document.getElementById('ratingStars');
-    if(!form||!list)return;
-    let selected=0;
-    rating?.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{selected=Number(btn.dataset.rating);rating.querySelectorAll('button').forEach(x=>x.classList.toggle('active',Number(x.dataset.rating)<=selected))}));
-    const render=()=>{
-      const reviews=get(REVIEW_KEY,[]).filter(r=>r.approved);
-      list.innerHTML=reviews.length?reviews.map(r=>`<article class="v5-review"><div class="stars">${stars(r.rating)}</div><small>${esc(r.name)} • ${new Date(r.createdAt).toLocaleDateString()}</small><p>${esc(r.comment)}</p></article>`).join(''):'<div class="v5-review"><p>No approved reviews yet. Be the first to share your experience.</p></div>';
-      renderAdmin();
-    };
-    form.addEventListener('submit',e=>{e.preventDefault();if(!selected)return alert('Please select a star rating.');const f=new FormData(form);const id=(crypto.randomUUID?.()||Date.now().toString());const review={id,name:f.get('name'),email:f.get('email'),rating:selected,comment:f.get('comment'),approved:false,createdAt:new Date().toISOString()};const reviews=get(REVIEW_KEY,[]);reviews.unshift(review);put(REVIEW_KEY,reviews);const clients=get(CLIENT_KEY,[]);clients.unshift({id,name:review.name,email:review.email,createdAt:review.createdAt});put(CLIENT_KEY,clients);selected=0;rating?.querySelectorAll('button').forEach(x=>x.classList.remove('active'));form.reset();alert('Thank you. Your review has been submitted for owner approval.');render();});
-    render();
-  }
+document.getElementById('bookingForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const d=new FormData(e.currentTarget);
+  const text=`Hi Davian, I'd like to book with Crosses & Clippers.%0A%0AName: ${encodeURIComponent(d.get('name'))}%0APhone: ${encodeURIComponent(d.get('phone'))}%0AService: ${encodeURIComponent(d.get('service'))}%0ADate: ${encodeURIComponent(d.get('date'))}%0ATime: ${encodeURIComponent(d.get('time'))}%0ANotes: ${encodeURIComponent(d.get('notes')||'None')}`;
+  window.open(`https://wa.me/27716369939?text=${text}`,'_blank');
+  e.currentTarget.reset();hideModal(booking);showToast('Booking message prepared for WhatsApp.');
+});
 
-  function renderAdmin(){
-    const panel=document.getElementById('adminPanel'),reviewsBox=document.getElementById('adminReviews'),clientsBox=document.getElementById('clientsPanel');if(!panel||!reviewsBox||!clientsBox)return;
-    const reviews=get(REVIEW_KEY,[]),clients=get(CLIENT_KEY,[]);
-    reviewsBox.innerHTML='<p class="eyebrow">REVIEW MANAGEMENT</p>'+(reviews.length?reviews.map(r=>`<div class="v5-admin-row"><span><b>${esc(r.name)}</b> — ${stars(r.rating)}<br>${esc(r.comment)}</span><span>${r.approved?'':'<button class="approve" data-approve="'+r.id+'">APPROVE</button>'}<button data-delete="${r.id}">DELETE</button></span></div>`).join(''):'<p class="v5-login-note">No reviews yet.</p>');
-    reviewsBox.querySelectorAll('[data-approve]').forEach(b=>b.onclick=()=>{const a=get(REVIEW_KEY,[]);const r=a.find(x=>x.id===b.dataset.approve);if(r)r.approved=true;put(REVIEW_KEY,a);initReviews()});
-    reviewsBox.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{put(REVIEW_KEY,get(REVIEW_KEY,[]).filter(x=>x.id!==b.dataset.delete));initReviews()});
-    clientsBox.innerHTML='<p class="eyebrow">CLIENT DATABASE</p><p class="v5-login-note">'+clients.length+' client record(s).</p>'+(clients.length?clients.map(c=>`<div class="v5-admin-row"><span><b>${esc(c.name)}</b><br>${esc(c.email||'No email')}</span></div>`).join(''):'<p class="v5-login-note">No client records yet.</p>');
-  }
+const nav=document.querySelector('.desktop-nav');
+document.querySelector('.hamb').addEventListener('click',()=>{
+  const open=nav.dataset.mobile==='open';
+  if(open){nav.dataset.mobile='';nav.removeAttribute('style')}
+  else{nav.dataset.mobile='open';Object.assign(nav.style,{display:'flex',position:'absolute',top:'82px',left:'0',right:'0',padding:'25px',flexDirection:'column',alignItems:'stretch',background:'#0b0b0b'})}
+});
 
-  function initOwner(){
-    const modal=document.getElementById('ownerModal'),open=document.getElementById('ownerLoginBtn'),close=document.getElementById('ownerClose'),form=document.getElementById('ownerForm'),panel=document.getElementById('adminPanel');
-    if(!modal||!open||!form)return;
-    open.onclick=()=>modal.classList.add('show');close&&(close.onclick=()=>modal.classList.remove('show'));
-    modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
-    form.addEventListener('submit',e=>{e.preventDefault();const email=document.getElementById('ownerEmail').value.trim().toLowerCase(),password=document.getElementById('ownerPassword').value,saved=get(OWNER_KEY,null);if(password.length<6)return alert('Password must be at least 6 characters.');if(!saved){put(OWNER_KEY,{email,password});panel.classList.add('show');modal.classList.remove('show');renderAdmin();alert('Owner account created on this browser.');return}if(saved.email!==email||saved.password!==password)return alert('Owner login details do not match.');panel.classList.add('show');modal.classList.remove('show');renderAdmin();});
-  }
+async function loadReviews(){
+  const list=document.getElementById('reviewList');
+  if(!supabaseClient){list.innerHTML='<div class="empty-state">Reviews will appear here once the V5 database is connected.</div>';return}
+  const {data,error}=await supabaseClient.from('reviews').select('id,name,rating,comment,created_at').eq('status','approved').order('created_at',{ascending:false});
+  if(error){list.innerHTML='<div class="empty-state">Reviews are temporarily unavailable.</div>';return}
+  if(!data.length){list.innerHTML='<div class="empty-state">Be the first client to leave a review.</div>';return}
+  list.innerHTML=data.map(r=>`<article class="review-item"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><h4>${escapeHtml(r.name)}</h4><p>${escapeHtml(r.comment)}</p><small>${new Date(r.created_at).toLocaleDateString()}</small></article>`).join('');
+}
+function escapeHtml(v=''){return v.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 
-  function init(){initBooking();initMobile();initReviews();initOwner();}
-  document.addEventListener('DOMContentLoaded',init);
-})();
+document.getElementById('reviewForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!supabaseClient){showToast('The review database is not connected yet.');return}
+  const d=new FormData(e.currentTarget);
+  const {error}=await supabaseClient.from('reviews').insert({name:d.get('name'),email:d.get('email')||null,rating:Number(d.get('rating')),comment:d.get('comment'),status:'pending'});
+  if(error){showToast('Could not submit the review. Please try again.');return}
+  e.currentTarget.reset();showToast('Thank you. Your review was submitted for approval.');loadReviews();
+});
+
+document.getElementById('adminOpen').addEventListener('click',async()=>{showModal(adminModal);await refreshAdmin()});
+document.getElementById('adminClose').addEventListener('click',()=>hideModal(adminModal));
+adminModal.addEventListener('click',e=>{if(e.target===adminModal)hideModal(adminModal)});
+
+document.getElementById('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!supabaseClient){showToast('Connect Supabase in supabase-config.js first.');return}
+  const d=new FormData(e.currentTarget);
+  const {error}=await supabaseClient.auth.signInWithPassword({email:d.get('email'),password:d.get('password')});
+  if(error){showToast(error.message);return}
+  e.currentTarget.hidden=true;document.getElementById('adminPanel').hidden=false;await refreshAdmin();
+});
+
+document.getElementById('logoutBtn').addEventListener('click',async()=>{
+  if(supabaseClient) await supabaseClient.auth.signOut();
+  document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;showToast('Logged out.');
+});
+
+document.querySelectorAll('.admin-tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.admin-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  document.querySelectorAll('.admin-tab').forEach(x=>x.hidden=true);document.getElementById(b.dataset.tab).hidden=false;
+}));
+
+async function refreshAdmin(){
+  if(!supabaseClient)return;
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(!session){document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;return}
+  document.getElementById('loginForm').hidden=true;document.getElementById('adminPanel').hidden=false;
+  loadAdminReviews();loadAdminClients();
+}
+async function loadAdminReviews(){
+  const wrap=document.getElementById('adminReviews');
+  const {data,error}=await supabaseClient.from('reviews').select('*').order('created_at',{ascending:false});
+  if(error){wrap.innerHTML='<p>Could not load reviews.</p>';return}
+  if(!data.length){wrap.innerHTML='<p>No reviews yet.</p>';return}
+  wrap.innerHTML=data.map(r=>`<div class="admin-review"><strong>${escapeHtml(r.name)} • ${r.rating}/5 • ${r.status}</strong><p>${escapeHtml(r.comment)}</p><div class="admin-actions">${r.status!=='approved'?`<button class="approve" data-approve="${r.id}">APPROVE</button>`:''}<button data-delete-review="${r.id}">DELETE</button></div></div>`).join('');
+  wrap.querySelectorAll('[data-approve]').forEach(b=>b.addEventListener('click',async()=>{await supabaseClient.from('reviews').update({status:'approved'}).eq('id',b.dataset.approve);loadAdminReviews();loadReviews()}));
+  wrap.querySelectorAll('[data-delete-review]').forEach(b=>b.addEventListener('click',async()=>{if(confirm('Delete this review?')){await supabaseClient.from('reviews').delete().eq('id',b.dataset.deleteReview);loadAdminReviews();loadReviews()}}));
+}
+async function loadAdminClients(){
+  const wrap=document.getElementById('adminClients');
+  const {data,error}=await supabaseClient.from('clients').select('*').order('created_at',{ascending:false});
+  if(error){wrap.innerHTML='<p>Could not load clients.</p>';return}
+  wrap.innerHTML=data.length?data.map(c=>`<div class="client-row"><strong>${escapeHtml(c.name)}</strong><span>${escapeHtml(c.phone||'')} ${escapeHtml(c.email||'')}</span><span>${escapeHtml(c.notes||'')}</span></div>`).join(''):'<p>No clients yet.</p>';
+}
+document.getElementById('clientForm').addEventListener('submit',async e=>{
+  e.preventDefault();if(!supabaseClient)return;
+  const d=new FormData(e.currentTarget);
+  const {error}=await supabaseClient.from('clients').insert({name:d.get('name'),phone:d.get('phone'),email:d.get('email'),notes:d.get('notes')});
+  if(error){showToast(error.message);return}e.currentTarget.reset();showToast('Client added.');loadAdminClients();
+});
+loadReviews();
+if(supabaseClient){supabaseClient.auth.onAuthStateChange(()=>refreshAdmin())}
