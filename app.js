@@ -1,7 +1,7 @@
 const STORE={reviews:'cc_reviews_v2',owner:'cc_owner_v2',clients:'cc_clients_v2'};
 const WA='27716369939',EMAIL='Davianbenjamin67@gmail.com';
 const sponsorship=[
- ['img','assets/img/sponsor-01.jpg','LEGENDS BARBER • PHOTO 01'],['img','assets/img/sponsor-02.jpg','LEGENDS BARBER • PHOTO 02'],['img','assets/img/sponsor-03.jpg','LEGENDS BARBER • PHOTO 03'],['img','assets/img/sponsor-04.jpg','LEGENDS BARBER • PHOTO 04'],['img','assets/img/sponsor-05.jpg','LEGENDS BARBER • PHOTO 05'],
+ ['img','assets/img/sponsor-01.jpg','LEGENDS BARBER • PHOTO 01'],['img','assets/img/sponsor-03.jpg','LEGENDS BARBER • PHOTO 03'],['img','assets/img/sponsor-04.jpg','LEGENDS BARBER • PHOTO 04'],['img','assets/img/sponsor-05.jpg','LEGENDS BARBER • PHOTO 05'],
  ['video','assets/video/VID-20260818-WA0023.mp4','LEGENDS BARBER • VIDEO 01','assets/posters/VID-20260818-WA0023.jpg'],['video','assets/video/VID-20260818-WA0024.mp4','LEGENDS BARBER • VIDEO 02','assets/posters/VID-20260818-WA0024.jpg'],['video','assets/video/VID-20260818-WA0027.mp4','LEGENDS BARBER • VIDEO 03','assets/posters/VID-20260818-WA0027.jpg'],['video','assets/video/VID-20260818-WA0080.mp4','LEGENDS BARBER • VIDEO 04','assets/posters/VID-20260818-WA0080.jpg'],['video','assets/video/VID-20260818-WA0082.mp4','LEGENDS BARBER • VIDEO 05','assets/posters/VID-20260818-WA0082.jpg']
 ];
 const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));const stars=n=>'★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n);
