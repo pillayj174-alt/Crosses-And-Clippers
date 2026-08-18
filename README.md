@@ -1,54 +1,33 @@
-# Crosses & Clippers V3
+# Crosses & Clippers — V4
 
-This is a **static GitHub Pages-ready** website. There is no React, Node, npm or build step.
+Premium static GitHub Pages website personalized with the supplied Crosses & Clippers contact details and supplied photos/videos.
 
-## Upload to GitHub
+## Contact details
+- Business: +27 71 227 4641
+- WhatsApp: +27 71 636 9939
+- Email: Davianbenjamin67@gmail.com
+- Address: 11 Elata Place, Palmridge
+- TikTok: https://www.tiktok.com/@crossesandclippers
 
-Put these files directly in the repository root:
+## Media included
+- `assets/owner-intro.mp4` — used naturally as the cinematic hero/story video
+- `assets/precision-cut.mp4` — portfolio video
+- `assets/signature-cut.mp4` — portfolio video
+- `assets/client-cut.jpg` — portrait/client image
+- `assets/owner-client.jpg` — barber/client image
 
-- index.html
-- style.css
-- app.js
-- .nojekyll
-- README.md
+All supplied media is used as provided. The site does not claim that any image/video is a specific service result beyond the contextual captions used on the page.
 
-Then GitHub → Settings → Pages → Deploy from a branch → `main` → `/ (root)`.
+## GitHub Pages
+This is a plain static website. No Node.js, npm, React, Vite or build process is required.
 
-## Images
+Upload the CONTENTS of this folder to the root of your GitHub repository:
 
-I found public reporting with two genuine Crosses & Clippers-related photographs in the July 2025 Alberton Record article. The article labels them "Photo: Supplied." The site therefore links to the press story but does **not** copy those copyrighted/supplied photographs into this repository without permission.
+`index.html`, `style.css`, `app.js`, `.nojekyll`, and `assets/`.
 
-The visual gallery currently uses temporary barber-industry imagery from Unsplash so the site looks complete while you obtain approved Crosses & Clippers photos.
+Then go to GitHub → Settings → Pages → Source: Deploy from a branch → `main` → `/ (root)` → Save.
 
-### Replace temporary images
-
-Search/replace the `images.unsplash.com` URLs in `index.html` with approved Crosses & Clippers images from the business's TikTok or files supplied by Davian.
-
-Recommended files:
-assets/logo.png
-assets/hero.jpg
-assets/about.jpg
-assets/work-01.jpg
-assets/work-02.jpg
-assets/work-03.jpg
-assets/story.jpg
-
-For a real client launch, use the business's own media and obtain permission where needed.
+You do NOT need to delete the old repository. You can replace the old files with these V4 files.
 
 ## Booking
-
-The booking form works without a backend by saving requests to the visitor's local browser storage. This is useful for a demo but is NOT suitable for real appointments.
-
-Next production step: connect the form to Supabase/Firebase/Formspree/your API and send notifications to the owner.
-
-## Verified business facts
-
-Crosses & Clippers is a barbering business in Eden Park, Gauteng, associated publicly with Davian Benjamin. The July 2025 Alberton Record report documents the business and equipment/business support from Sheldon Tatchell/FXDE.
-
-Source:
-https://www.citizen.co.za/alberton-record/news-headlines/local-news/2025/07/11/businessman-sheldon-tatchell-lends-helping-hand-to-upcoming-barbershop-entrepreneur/
-
-TikTok:
-https://www.tiktok.com/@crossesandclippers
-
-Do not invent phone numbers, email, exact street address, opening hours, prices or testimonials.
+The booking form is free and works on GitHub Pages by generating a WhatsApp booking message to +27 71 636 9939. It also stores a local copy in the visitor's browser. For a real multi-device booking dashboard, connect it to a backend later.

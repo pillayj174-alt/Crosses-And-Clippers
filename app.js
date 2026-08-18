@@ -1,25 +1,10 @@
-const defaults=[
- {name:"Haircut",desc:"Professional haircut.",price:"",duration:""},
- {name:"Fade",desc:"Precision fade.",price:"",duration:""},
- {name:"Taper",desc:"Clean taper styling.",price:"",duration:""},
- {name:"Beard",desc:"Professional beard grooming.",price:"",duration:""},
- {name:"Line-up",desc:"Sharp, detailed line-up.",price:"",duration:""},
- {name:"Custom Style",desc:"Personalized barbering.",price:"",duration:""}
-];
-const stored=JSON.parse(localStorage.getItem("cac-v3-services")||"null")||defaults;
-const grid=document.getElementById("serviceGrid"), select=document.getElementById("serviceSelect");
-function renderServices(){grid.innerHTML="";select.innerHTML='<option value="">Select a service</option>';stored.forEach((s,i)=>{grid.insertAdjacentHTML("beforeend",`<article class="service"><small>0${i+1}</small><h3>${s.name}</h3><p>${s.desc}</p>${s.price||s.duration?`<div class="serviceMeta">${s.price?`<span>${s.price}</span>`:""} ${s.duration?`<span>${s.duration}</span>`:""}</div>`:""}<button data-book>BOOK ↗</button></article>`);select.insertAdjacentHTML("beforeend",`<option>${s.name}</option>`)});document.querySelectorAll("[data-book]").forEach(b=>b.addEventListener("click",openModal))}
-renderServices();
-
-const modal=document.getElementById("bookingModal");
-function openModal(){modal.classList.add("show");modal.setAttribute("aria-hidden","false");document.body.style.overflow="hidden"}
-function closeModal(){modal.classList.remove("show");modal.setAttribute("aria-hidden","true");document.body.style.overflow=""}
-document.querySelectorAll("[data-book]").forEach(b=>b.addEventListener("click",openModal));
-document.getElementById("closeModal").onclick=closeModal;
-modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
-
-const form=document.getElementById("bookingForm"), success=document.getElementById("success");
-form.addEventListener("submit",e=>{e.preventDefault();const data=Object.fromEntries(new FormData(form));const list=JSON.parse(localStorage.getItem("cac-bookings-v3")||"[]");list.push({...data,createdAt:new Date().toISOString()});localStorage.setItem("cac-bookings-v3",JSON.stringify(list));form.style.display="none";success.classList.add("show")});
-
-document.getElementById("hamb").addEventListener("click",()=>document.querySelector(".nav").classList.toggle("open"));
-document.querySelectorAll('#navLinks a').forEach(a=>a.addEventListener('click',()=>document.querySelector(".nav").classList.remove("open")));
+const booking=document.getElementById('booking');
+const openers=document.querySelectorAll('[data-book]');
+const close=document.querySelector('[data-close]');
+const form=document.getElementById('bookingForm');
+const toast=document.createElement('div');toast.className='toast';document.body.appendChild(toast);
+function show(){booking.classList.add('show');document.body.style.overflow='hidden'}
+function hide(){booking.classList.remove('show');document.body.style.overflow=''}
+openers.forEach(b=>b.addEventListener('click',show));close.addEventListener('click',hide);booking.addEventListener('click',e=>{if(e.target===booking)hide()});
+form.addEventListener('submit',e=>{e.preventDefault();const d=new FormData(form);const text=`Hi Davian, I'd like to book with Crosses & Clippers.%0A%0AName: ${encodeURIComponent(d.get('name'))}%0APhone: ${encodeURIComponent(d.get('phone'))}%0AService: ${encodeURIComponent(d.get('service'))}%0ADate: ${encodeURIComponent(d.get('date'))}%0ATime: ${encodeURIComponent(d.get('time'))}%0ANotes: ${encodeURIComponent(d.get('notes')||'None')}`;const record=Object.fromEntries(d.entries());record.createdAt=new Date().toISOString();const old=JSON.parse(localStorage.getItem('crossesBookings')||'[]');old.push(record);localStorage.setItem('crossesBookings',JSON.stringify(old));window.open(`https://wa.me/27716369939?text=${text}`,'_blank');form.reset();hide();toast.textContent='Booking message prepared for WhatsApp.';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3500)});
+const nav=document.querySelector('nav');document.querySelector('.hamb').addEventListener('click',()=>{nav.style.display=nav.style.display==='flex'?'':'flex';nav.style.position='absolute';nav.style.top='82px';nav.style.left='0';nav.style.right='0';nav.style.padding='25px';nav.style.flexDirection='column';nav.style.alignItems='stretch';nav.style.background='#0b0b0b'});
