@@ -3,124 +3,30 @@ const adminModal=document.getElementById('adminModal');
 const toast=document.getElementById('toast');
 const sbReady=window.CC_SUPABASE_URL && !window.CC_SUPABASE_URL.includes('YOUR_') && window.CC_SUPABASE_ANON_KEY && !window.CC_SUPABASE_ANON_KEY.includes('YOUR_');
 const supabaseClient=sbReady && window.supabase ? window.supabase.createClient(window.CC_SUPABASE_URL,window.CC_SUPABASE_ANON_KEY) : null;
-
 function showToast(message){toast.textContent=message;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3500)}
 function showModal(el){el.classList.add('show');document.body.style.overflow='hidden'}
 function hideModal(el){el.classList.remove('show');document.body.style.overflow=''}
-
 document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>showModal(booking)));
 document.querySelector('[data-close]').addEventListener('click',()=>hideModal(booking));
 booking.addEventListener('click',e=>{if(e.target===booking)hideModal(booking)});
-
-document.getElementById('bookingForm').addEventListener('submit',e=>{
-  e.preventDefault();
-  const d=new FormData(e.currentTarget);
-  const text=`Hi Davian, I'd like to book with Crosses & Clippers.%0A%0AName: ${encodeURIComponent(d.get('name'))}%0APhone: ${encodeURIComponent(d.get('phone'))}%0AService: ${encodeURIComponent(d.get('service'))}%0ADate: ${encodeURIComponent(d.get('date'))}%0ATime: ${encodeURIComponent(d.get('time'))}%0ANotes: ${encodeURIComponent(d.get('notes')||'None')}`;
-  window.open(`https://wa.me/27716369939?text=${text}`,'_blank');
-  e.currentTarget.reset();hideModal(booking);showToast('Booking message prepared for WhatsApp.');
-});
-
+document.getElementById('bookingForm').addEventListener('submit',e=>{e.preventDefault();const d=new FormData(e.currentTarget);const text=`Hi Davian, I'd like to book with Crosses & Clippers.%0A%0AName: ${encodeURIComponent(d.get('name'))}%0APhone: ${encodeURIComponent(d.get('phone'))}%0AService: ${encodeURIComponent(d.get('service'))}%0ADate: ${encodeURIComponent(d.get('date'))}%0ATime: ${encodeURIComponent(d.get('time'))}%0ANotes: ${encodeURIComponent(d.get('notes')||'None')}`;window.open(`https://wa.me/27716369939?text=${text}`,'_blank');e.currentTarget.reset();hideModal(booking);showToast('Booking message prepared for WhatsApp.')});
 const nav=document.querySelector('.desktop-nav');
-document.querySelector('.hamb').addEventListener('click',()=>{
-  const open=nav.dataset.mobile==='open';
-  if(open){nav.dataset.mobile='';nav.removeAttribute('style')}
-  else{nav.dataset.mobile='open';Object.assign(nav.style,{display:'flex',position:'absolute',top:'82px',left:'0',right:'0',padding:'25px',flexDirection:'column',alignItems:'stretch',background:'#0b0b0b'})}
-});
-
-async function loadReviews(){
-  const list=document.getElementById('reviewList');
-  if(!supabaseClient){list.innerHTML='<div class="empty-state">Reviews will appear here once the V5 database is connected.</div>';return}
-  const {data,error}=await supabaseClient.from('reviews').select('id,name,rating,comment,created_at').eq('status','approved').order('created_at',{ascending:false});
-  if(error){list.innerHTML='<div class="empty-state">Reviews are temporarily unavailable.</div>';return}
-  if(!data.length){list.innerHTML='<div class="empty-state">Be the first client to leave a review.</div>';return}
-  list.innerHTML=data.map(r=>`<article class="review-item"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><h4>${escapeHtml(r.name)}</h4><p>${escapeHtml(r.comment)}</p><small>${new Date(r.created_at).toLocaleDateString()}</small></article>`).join('');
-}
+document.querySelector('.hamb').addEventListener('click',()=>{const open=nav.dataset.mobile==='open';if(open){nav.dataset.mobile='';nav.removeAttribute('style')}else{nav.dataset.mobile='open';Object.assign(nav.style,{display:'flex',position:'absolute',top:'82px',left:'0',right:'0',padding:'25px',flexDirection:'column',alignItems:'stretch',background:'#0b0b0b'})}});
+async function loadReviews(){const list=document.getElementById('reviewList');if(!supabaseClient){list.innerHTML='<div class="empty-state">Reviews will appear here once the V5 database is connected.</div>';return}const {data,error}=await supabaseClient.from('reviews').select('id,name,rating,comment,created_at').eq('status','approved').order('created_at',{ascending:false});if(error){list.innerHTML='<div class="empty-state">Reviews are temporarily unavailable.</div>';return}if(!data.length){list.innerHTML='<div class="empty-state">Be the first client to leave a review.</div>';return}list.innerHTML=data.map(r=>`<article class="review-item"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><h4>${escapeHtml(r.name)}</h4><p>${escapeHtml(r.comment)}</p><small>${new Date(r.created_at).toLocaleDateString()}</small></article>`).join('')}
 function escapeHtml(v=''){return v.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-
-document.getElementById('reviewForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  if(!supabaseClient){showToast('The review database is not connected yet.');return}
-  const d=new FormData(e.currentTarget);
-  const {error}=await supabaseClient.from('reviews').insert({name:d.get('name'),email:d.get('email')||null,rating:Number(d.get('rating')),comment:d.get('comment'),status:'pending'});
-  if(error){showToast('Could not submit the review. Please try again.');return}
-  e.currentTarget.reset();showToast('Thank you. Your review was submitted for approval.');loadReviews();
-});
-
+document.getElementById('reviewForm').addEventListener('submit',async e=>{e.preventDefault();if(!supabaseClient){showToast('The review database is not connected yet.');return}const d=new FormData(e.currentTarget);const {error}=await supabaseClient.from('reviews').insert({name:d.get('name'),email:d.get('email')||null,rating:Number(d.get('rating')),comment:d.get('comment'),status:'pending'});if(error){showToast('Could not submit the review. Please try again.');return}e.currentTarget.reset();showToast('Thank you. Your review was submitted for approval.');loadReviews()});
 document.getElementById('adminOpen').addEventListener('click',async()=>{showModal(adminModal);await refreshAdmin()});
-document.getElementById('adminClose').addEventListener('click',()=>hideModal(adminModal));
-adminModal.addEventListener('click',e=>{if(e.target===adminModal)hideModal(adminModal)});
+document.getElementById('adminClose').addEventListener('click',()=>hideModal(adminModal));adminModal.addEventListener('click',e=>{if(e.target===adminModal)hideModal(adminModal)});
+document.getElementById('loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!supabaseClient){showToast('Connect Supabase in supabase-config.js first.');return}const d=new FormData(e.currentTarget);const {error}=await supabaseClient.auth.signInWithPassword({email:d.get('email'),password:d.get('password')});if(error){showToast(error.message);return}e.currentTarget.hidden=true;document.getElementById('adminPanel').hidden=false;await refreshAdmin()});
+document.getElementById('logoutBtn').addEventListener('click',async()=>{if(supabaseClient) await supabaseClient.auth.signOut();document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;showToast('Logged out.')});
+document.querySelectorAll('.admin-tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.admin-tab').forEach(x=>x.hidden=true);document.getElementById(b.dataset.tab).hidden=false}));
+async function refreshAdmin(){if(!supabaseClient)return;const {data:{session}}=await supabaseClient.auth.getSession();if(!session){document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;return}document.getElementById('loginForm').hidden=true;document.getElementById('adminPanel').hidden=false;loadAdminReviews();loadAdminClients()}
+async function loadAdminReviews(){const wrap=document.getElementById('adminReviews');const {data,error}=await supabaseClient.from('reviews').select('*').order('created_at',{ascending:false});if(error){wrap.innerHTML='<p>Could not load reviews.</p>';return}if(!data.length){wrap.innerHTML='<p>No reviews yet.</p>';return}wrap.innerHTML=data.map(r=>`<div class="admin-review"><strong>${escapeHtml(r.name)} • ${r.rating}/5 • ${r.status}</strong><p>${escapeHtml(r.comment)}</p><div class="admin-actions">${r.status!=='approved'?`<button class="approve" data-approve="${r.id}">APPROVE</button>`:''}<button data-delete-review="${r.id}">DELETE</button></div></div>`).join('');wrap.querySelectorAll('[data-approve]').forEach(b=>b.addEventListener('click',async()=>{await supabaseClient.from('reviews').update({status:'approved'}).eq('id',b.dataset.approve);loadAdminReviews();loadReviews()}));wrap.querySelectorAll('[data-delete-review]').forEach(b=>b.addEventListener('click',async()=>{if(confirm('Delete this review?')){await supabaseClient.from('reviews').delete().eq('id',b.dataset.deleteReview);loadAdminReviews();loadReviews()}}))}
+async function loadAdminClients(){const wrap=document.getElementById('adminClients');const {data,error}=await supabaseClient.from('clients').select('*').order('created_at',{ascending:false});if(error){wrap.innerHTML='<p>Could not load clients.</p>';return}wrap.innerHTML=data.length?data.map(c=>`<div class="client-row"><strong>${escapeHtml(c.name)}</strong><span>${escapeHtml(c.phone||'')} ${escapeHtml(c.email||'')}</span><span>${escapeHtml(c.notes||'')}</span></div>`).join(''):'<p>No clients yet.</p>'}
+document.getElementById('clientForm').addEventListener('submit',async e=>{e.preventDefault();if(!supabaseClient)return;const d=new FormData(e.currentTarget);const {error}=await supabaseClient.from('clients').insert({name:d.get('name'),phone:d.get('phone'),email:d.get('email'),notes:d.get('notes')});if(error){showToast(error.message);return}e.currentTarget.reset();showToast('Client added.');loadAdminClients()});
 
-document.getElementById('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  if(!supabaseClient){showToast('Connect Supabase in supabase-config.js first.');return}
-  const d=new FormData(e.currentTarget);
-  const {error}=await supabaseClient.auth.signInWithPassword({email:d.get('email'),password:d.get('password')});
-  if(error){showToast(error.message);return}
-  e.currentTarget.hidden=true;document.getElementById('adminPanel').hidden=false;await refreshAdmin();
-});
-
-document.getElementById('logoutBtn').addEventListener('click',async()=>{
-  if(supabaseClient) await supabaseClient.auth.signOut();
-  document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;showToast('Logged out.');
-});
-
-document.querySelectorAll('.admin-tabs button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('.admin-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
-  document.querySelectorAll('.admin-tab').forEach(x=>x.hidden=true);document.getElementById(b.dataset.tab).hidden=false;
-}));
-
-async function refreshAdmin(){
-  if(!supabaseClient)return;
-  const {data:{session}}=await supabaseClient.auth.getSession();
-  if(!session){document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;return}
-  document.getElementById('loginForm').hidden=true;document.getElementById('adminPanel').hidden=false;
-  loadAdminReviews();loadAdminClients();
-}
-async function loadAdminReviews(){
-  const wrap=document.getElementById('adminReviews');
-  const {data,error}=await supabaseClient.from('reviews').select('*').order('created_at',{ascending:false});
-  if(error){wrap.innerHTML='<p>Could not load reviews.</p>';return}
-  if(!data.length){wrap.innerHTML='<p>No reviews yet.</p>';return}
-  wrap.innerHTML=data.map(r=>`<div class="admin-review"><strong>${escapeHtml(r.name)} • ${r.rating}/5 • ${r.status}</strong><p>${escapeHtml(r.comment)}</p><div class="admin-actions">${r.status!=='approved'?`<button class="approve" data-approve="${r.id}">APPROVE</button>`:''}<button data-delete-review="${r.id}">DELETE</button></div></div>`).join('');
-  wrap.querySelectorAll('[data-approve]').forEach(b=>b.addEventListener('click',async()=>{await supabaseClient.from('reviews').update({status:'approved'}).eq('id',b.dataset.approve);loadAdminReviews();loadReviews()}));
-  wrap.querySelectorAll('[data-delete-review]').forEach(b=>b.addEventListener('click',async()=>{if(confirm('Delete this review?')){await supabaseClient.from('reviews').delete().eq('id',b.dataset.deleteReview);loadAdminReviews();loadReviews()}}));
-}
-async function loadAdminClients(){
-  const wrap=document.getElementById('adminClients');
-  const {data,error}=await supabaseClient.from('clients').select('*').order('created_at',{ascending:false});
-  if(error){wrap.innerHTML='<p>Could not load clients.</p>';return}
-  wrap.innerHTML=data.length?data.map(c=>`<div class="client-row"><strong>${escapeHtml(c.name)}</strong><span>${escapeHtml(c.phone||'')} ${escapeHtml(c.email||'')}</span><span>${escapeHtml(c.notes||'')}</span></div>`).join(''):'<p>No clients yet.</p>';
-}
-document.getElementById('clientForm').addEventListener('submit',async e=>{
-  e.preventDefault();if(!supabaseClient)return;
-  const d=new FormData(e.currentTarget);
-  const {error}=await supabaseClient.from('clients').insert({name:d.get('name'),phone:d.get('phone'),email:d.get('email'),notes:d.get('notes')});
-  if(error){showToast(error.message);return}e.currentTarget.reset();showToast('Client added.');loadAdminClients();
-});
-
-/* V5 content fixes requested by the owner. */
-function updateV5Content(){
-  /* MY STORY: remove all My Story pictures and short videos; keep only the supplied 3-minute video. */
-  const story=document.getElementById('story');
-  const gallery=document.querySelector('.story-gallery');
-  if(gallery)gallery.remove();
-  if(story){
-    const media=story.querySelector('.story-media');
-    if(media){media.innerHTML='<video controls playsinline preload="metadata" poster="assets/my-story/posters/my-story-01.jpg"><source src="assets/my-story/videos/my-story-01.mp4" type="video/mp4"></video>';media.classList.add('cc-v5-story-only-video')}
-    const copy=story.querySelector('.story-heading');
-    if(copy){const ps=copy.querySelectorAll('p:not(.eyebrow)');if(ps.length)ps[ps.length-1].textContent='The full My Story is told in the supplied three-minute video. The additional My Story pictures and shorter videos have been intentionally removed from this section.'}
-  }
-  /* LEGENDS BARBER SPONSORSHIP: add the story from the supplied article. */
-  const sponsor=document.getElementById('sponsorship');
-  if(sponsor&&!document.getElementById('ccV5ArticleStory')){
-    const article=document.createElement('div');article.id='ccV5ArticleStory';article.className='cc-v5-article-story';
-    article.innerHTML='<h3>A GIFT THAT MEANT MORE THAN EQUIPMENT.</h3><p><strong>Legends Barber founder Sheldon Tatchell</strong> donated barbershop equipment to an Eden Park youngster. Besides running multiple successful businesses, Sheldon is known for charitable causes aimed at uplifting the youth.</p><p>“Today, I am in Eden Park visiting a barber who just recovered from drug abuse. He now tries to rebuild his life, cutting hair from his home. I came to bless him with equipment, but more than that, I am here to give him hope.”</p><p><strong>— Sheldon Tatchell</strong></p>';
-    sponsor.appendChild(article);
-  }
-  /* Give every sponsorship video its own supplied poster so duplicate thumbnails cannot be reused. */
-  document.querySelectorAll('#sponsorship video').forEach((video,i)=>{const n=i+1;if(!video.getAttribute('poster'))video.setAttribute('poster',`assets/sponsorship/posters/sponsorship-0${n}.jpg`)});
-}
-
-loadReviews();
-if(supabaseClient){supabaseClient.auth.onAuthStateChange(()=>refreshAdmin())}
-updateV5Content();
+function injectV5Styles(){if(document.getElementById('cc-v5-style'))return;const s=document.createElement('style');s.id='cc-v5-style';s.textContent=`.cc-v5-story-only-video video{width:100%;height:100%;min-height:520px;object-fit:cover;display:block}.cc-v5-story-only-video{width:100%}.cc-v5-article-story{max-width:900px;margin:55px auto 0;padding:34px;border:1px solid #292929;background:#111;color:#aaa;line-height:1.85}.cc-v5-article-story h3{font-family:Oswald,sans-serif;color:#f3f0e9;font-size:42px;margin:0 0 18px}.cc-v5-article-story strong{color:#d5bd8b}.cc-v5-article-story p{margin:0 0 16px}@media(max-width:700px){.cc-v5-story-only-video video{min-height:300px}.cc-v5-article-story{margin-top:35px;padding:24px}.cc-v5-article-story h3{font-size:34px}}`;document.head.appendChild(s)}
+function updateV5Content(){injectV5Styles();const story=document.getElementById('story');const gallery=document.querySelector('.story-gallery');if(gallery)gallery.remove();if(story){const media=story.querySelector('.story-media');if(media){media.innerHTML='<video controls playsinline preload="metadata" poster="assets/my-story/posters/my-story-01.jpg"><source src="assets/my-story/videos/my-story-01.mp4" type="video/mp4"></video>';media.classList.add('cc-v5-story-only-video')}const copy=story.querySelector('.story-heading');if(copy){const ps=copy.querySelectorAll('p:not(.eyebrow)');if(ps.length)ps[ps.length-1].textContent='The full My Story is told in the supplied three-minute video. The additional My Story pictures and shorter videos have been intentionally removed from this section.'}}
+const sponsor=document.getElementById('sponsorship');if(sponsor&&!document.getElementById('ccV5ArticleStory')){const article=document.createElement('div');article.id='ccV5ArticleStory';article.className='cc-v5-article-story';article.innerHTML='<h3>A GIFT THAT MEANT MORE THAN EQUIPMENT.</h3><p><strong>Legends Barber founder Sheldon Tatchell</strong> donated barbershop equipment to an Eden Park youngster. Besides running multiple successful businesses, Sheldon is known for charitable causes aimed at uplifting the youth.</p><p>“Today, I am in Eden Park visiting a barber who just recovered from drug abuse. He now tries to rebuild his life, cutting hair from his home. I came to bless him with equipment, but more than that, I am here to give him hope.”</p><p><strong>— Sheldon Tatchell</strong></p>';sponsor.appendChild(article)}
+document.querySelectorAll('#sponsorship video').forEach((video,i)=>{if(!video.getAttribute('poster'))video.setAttribute('poster',`assets/sponsorship/posters/sponsorship-0${i+1}.jpg`)})}
+loadReviews();if(supabaseClient){supabaseClient.auth.onAuthStateChange(()=>refreshAdmin())}updateV5Content();
