@@ -1,101 +1,13 @@
-const booking=document.getElementById('booking');
-const adminModal=document.getElementById('adminModal');
-const toast=document.getElementById('toast');
-const sbReady=window.CC_SUPABASE_URL && !window.CC_SUPABASE_URL.includes('YOUR_') && window.CC_SUPABASE_ANON_KEY && !window.CC_SUPABASE_ANON_KEY.includes('YOUR_');
-const supabaseClient=sbReady && window.supabase ? window.supabase.createClient(window.CC_SUPABASE_URL,window.CC_SUPABASE_ANON_KEY) : null;
-
-function showToast(message){toast.textContent=message;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3500)}
-function showModal(el){el.classList.add('show');document.body.style.overflow='hidden'}
-function hideModal(el){el.classList.remove('show');document.body.style.overflow=''}
-
-document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>showModal(booking)));
-document.querySelector('[data-close]').addEventListener('click',()=>hideModal(booking));
-booking.addEventListener('click',e=>{if(e.target===booking)hideModal(booking)});
-
-document.getElementById('bookingForm').addEventListener('submit',e=>{
-  e.preventDefault();
-  const d=new FormData(e.currentTarget);
-  const text=`Hi Davian, I'd like to book with Crosses & Clippers.%0A%0AName: ${encodeURIComponent(d.get('name'))}%0APhone: ${encodeURIComponent(d.get('phone'))}%0AService: ${encodeURIComponent(d.get('service'))}%0ADate: ${encodeURIComponent(d.get('date'))}%0ATime: ${encodeURIComponent(d.get('time'))}%0ANotes: ${encodeURIComponent(d.get('notes')||'None')}`;
-  window.open(`https://wa.me/27716369939?text=${text}`,'_blank');
-  e.currentTarget.reset();hideModal(booking);showToast('Booking message prepared for WhatsApp.');
-});
-
-const nav=document.querySelector('.desktop-nav');
-document.querySelector('.hamb').addEventListener('click',()=>{
-  const open=nav.dataset.mobile==='open';
-  if(open){nav.dataset.mobile='';nav.removeAttribute('style')}
-  else{nav.dataset.mobile='open';Object.assign(nav.style,{display:'flex',position:'absolute',top:'82px',left:'0',right:'0',padding:'25px',flexDirection:'column',alignItems:'stretch',background:'#0b0b0b'})}
-});
-
-async function loadReviews(){
-  const list=document.getElementById('reviewList');
-  if(!supabaseClient){list.innerHTML='<div class="empty-state">Reviews will appear here once the V5 database is connected.</div>';return}
-  const {data,error}=await supabaseClient.from('reviews').select('id,name,rating,comment,created_at').eq('status','approved').order('created_at',{ascending:false});
-  if(error){list.innerHTML='<div class="empty-state">Reviews are temporarily unavailable.</div>';return}
-  if(!data.length){list.innerHTML='<div class="empty-state">Be the first client to leave a review.</div>';return}
-  list.innerHTML=data.map(r=>`<article class="review-item"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><h4>${escapeHtml(r.name)}</h4><p>${escapeHtml(r.comment)}</p><small>${new Date(r.created_at).toLocaleDateString()}</small></article>`).join('');
-}
-function escapeHtml(v=''){return v.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-
-document.getElementById('reviewForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  if(!supabaseClient){showToast('The review database is not connected yet.');return}
-  const d=new FormData(e.currentTarget);
-  const {error}=await supabaseClient.from('reviews').insert({name:d.get('name'),email:d.get('email')||null,rating:Number(d.get('rating')),comment:d.get('comment'),status:'pending'});
-  if(error){showToast('Could not submit the review. Please try again.');return}
-  e.currentTarget.reset();showToast('Thank you. Your review was submitted for approval.');loadReviews();
-});
-
-document.getElementById('adminOpen').addEventListener('click',async()=>{showModal(adminModal);await refreshAdmin()});
-document.getElementById('adminClose').addEventListener('click',()=>hideModal(adminModal));
-adminModal.addEventListener('click',e=>{if(e.target===adminModal)hideModal(adminModal)});
-
-document.getElementById('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  if(!supabaseClient){showToast('Connect Supabase in supabase-config.js first.');return}
-  const d=new FormData(e.currentTarget);
-  const {error}=await supabaseClient.auth.signInWithPassword({email:d.get('email'),password:d.get('password')});
-  if(error){showToast(error.message);return}
-  e.currentTarget.hidden=true;document.getElementById('adminPanel').hidden=false;await refreshAdmin();
-});
-
-document.getElementById('logoutBtn').addEventListener('click',async()=>{
-  if(supabaseClient) await supabaseClient.auth.signOut();
-  document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;showToast('Logged out.');
-});
-
-document.querySelectorAll('.admin-tabs button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('.admin-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
-  document.querySelectorAll('.admin-tab').forEach(x=>x.hidden=true);document.getElementById(b.dataset.tab).hidden=false;
-}));
-
-async function refreshAdmin(){
-  if(!supabaseClient)return;
-  const {data:{session}}=await supabaseClient.auth.getSession();
-  if(!session){document.getElementById('loginForm').hidden=false;document.getElementById('adminPanel').hidden=true;return}
-  document.getElementById('loginForm').hidden=true;document.getElementById('adminPanel').hidden=false;
-  loadAdminReviews();loadAdminClients();
-}
-async function loadAdminReviews(){
-  const wrap=document.getElementById('adminReviews');
-  const {data,error}=await supabaseClient.from('reviews').select('*').order('created_at',{ascending:false});
-  if(error){wrap.innerHTML='<p>Could not load reviews.</p>';return}
-  if(!data.length){wrap.innerHTML='<p>No reviews yet.</p>';return}
-  wrap.innerHTML=data.map(r=>`<div class="admin-review"><strong>${escapeHtml(r.name)} • ${r.rating}/5 • ${r.status}</strong><p>${escapeHtml(r.comment)}</p><div class="admin-actions">${r.status!=='approved'?`<button class="approve" data-approve="${r.id}">APPROVE</button>`:''}<button data-delete-review="${r.id}">DELETE</button></div></div>`).join('');
-  wrap.querySelectorAll('[data-approve]').forEach(b=>b.addEventListener('click',async()=>{await supabaseClient.from('reviews').update({status:'approved'}).eq('id',b.dataset.approve);loadAdminReviews();loadReviews()}));
-  wrap.querySelectorAll('[data-delete-review]').forEach(b=>b.addEventListener('click',async()=>{if(confirm('Delete this review?')){await supabaseClient.from('reviews').delete().eq('id',b.dataset.deleteReview);loadAdminReviews();loadReviews()}}));
-}
-async function loadAdminClients(){
-  const wrap=document.getElementById('adminClients');
-  const {data,error}=await supabaseClient.from('clients').select('*').order('created_at',{ascending:false});
-  if(error){wrap.innerHTML='<p>Could not load clients.</p>';return}
-  wrap.innerHTML=data.length?data.map(c=>`<div class="client-row"><strong>${escapeHtml(c.name)}</strong><span>${escapeHtml(c.phone||'')} ${escapeHtml(c.email||'')}</span><span>${escapeHtml(c.notes||'')}</span></div>`).join(''):'<p>No clients yet.</p>';
-}
-document.getElementById('clientForm').addEventListener('submit',async e=>{
-  e.preventDefault();if(!supabaseClient)return;
-  const d=new FormData(e.currentTarget);
-  const {error}=await supabaseClient.from('clients').insert({name:d.get('name'),phone:d.get('phone'),email:d.get('email'),notes:d.get('notes')});
-  if(error){showToast(error.message);return}e.currentTarget.reset();showToast('Client added.');loadAdminClients();
-});
-loadReviews();
-if(supabaseClient){supabaseClient.auth.onAuthStateChange(()=>refreshAdmin())}
+const STORE={reviews:'cc_reviews_v2',owner:'cc_owner_v2',clients:'cc_clients_v2'};
+const WA='27716369939',EMAIL='Davianbenjamin67@gmail.com';
+const sponsorship=[
+ ['img','assets/img/sponsor-01.jpg','LEGENDS BARBER • PHOTO 01'],['img','assets/img/sponsor-02.jpg','LEGENDS BARBER • PHOTO 02'],['img','assets/img/sponsor-03.jpg','LEGENDS BARBER • PHOTO 03'],['img','assets/img/sponsor-04.jpg','LEGENDS BARBER • PHOTO 04'],['img','assets/img/sponsor-05.jpg','LEGENDS BARBER • PHOTO 05'],
+ ['video','assets/video/VID-20260818-WA0023.mp4','LEGENDS BARBER • VIDEO 01','assets/posters/VID-20260818-WA0023.jpg'],['video','assets/video/VID-20260818-WA0024.mp4','LEGENDS BARBER • VIDEO 02','assets/posters/VID-20260818-WA0024.jpg'],['video','assets/video/VID-20260818-WA0027.mp4','LEGENDS BARBER • VIDEO 03','assets/posters/VID-20260818-WA0027.jpg'],['video','assets/video/VID-20260818-WA0080.mp4','LEGENDS BARBER • VIDEO 04','assets/posters/VID-20260818-WA0080.jpg'],['video','assets/video/VID-20260818-WA0082.mp4','LEGENDS BARBER • VIDEO 05','assets/posters/VID-20260818-WA0082.jpg']
+];
+const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));const stars=n=>'★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n);
+function slideshow(root,items){const slides=root.querySelector('.slides'),dots=root.querySelector('.dots');let i=0;slides.innerHTML=items.map((x,n)=>x[0]==='img'?`<figure class="slide ${n===0?'active':''}"><img src="${x[1]}" alt="${esc(x[2])}"><figcaption>${esc(x[2])}</figcaption></figure>`:`<figure class="slide ${n===0?'active':''}"><video controls playsinline preload="metadata" poster="${x[3]||''}"><source src="${x[1]}" type="video/mp4"></video><figcaption>${esc(x[2])}</figcaption></figure>`).join('');dots.innerHTML=items.map((_,n)=>`<button class="dot ${n===0?'active':''}" aria-label="Go to ${n+1}"></button>`).join('');const go=n=>{i=(n+items.length)%items.length;slides.querySelectorAll('.slide').forEach((s,j)=>s.classList.toggle('active',j===i));dots.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('active',j===i));};root.querySelector('.prev').onclick=()=>go(i-1);root.querySelector('.next').onclick=()=>go(i+1);dots.querySelectorAll('.dot').forEach((d,n)=>d.onclick=()=>go(n));let sx=0;slides.addEventListener('touchstart',e=>sx=e.changedTouches[0].screenX,{passive:true});slides.addEventListener('touchend',e=>{let dx=e.changedTouches[0].screenX-sx;if(Math.abs(dx)>45)go(i+(dx<0?1:-1));});}
+function booking(){const m=document.getElementById('booking');document.querySelectorAll('[data-book]').forEach(b=>b.onclick=()=>m.classList.add('show'));document.querySelector('[data-close]').onclick=()=>m.classList.remove('show');document.getElementById('bookingForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const text=`Crosses & Clippers Appointment\n\nName: ${f.get('name')}\nPhone: ${f.get('phone')}\nService: ${f.get('service')}\nDate: ${f.get('date')}\nTime: ${f.get('time')}\nNotes: ${f.get('notes')||'None'}`;window.open(`https://wa.me/${WA}?text=${encodeURIComponent(text)}`,'_blank');window.location.href=`mailto:${EMAIL}?subject=${encodeURIComponent('Crosses & Clippers Appointment')}&body=${encodeURIComponent(text)}`;m.classList.remove('show');};}
+function renderReviews(){const rs=get(STORE.reviews,[]).filter(r=>r.approved);const list=document.getElementById('reviewList');document.getElementById('reviewCount').textContent=rs.length;const avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:0;document.getElementById('avgRating').textContent=avg.toFixed(1);document.getElementById('ratingStars').textContent=stars(Math.round(avg));list.innerHTML=rs.length?rs.map(r=>`<article class="review-item"><div class="stars">${stars(r.rating)}</div><h4>${esc(r.name)}</h4><p>${esc(r.comment)}</p><small>${new Date(r.createdAt).toLocaleDateString()}</small></article>`).join(''):'<div class="empty-state">Be the first approved client review.</div>';}
+function reviews(){document.getElementById('reviewForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),r={id:crypto.randomUUID(),name:f.get('name'),email:f.get('email'),rating:+f.get('rating'),comment:f.get('comment'),approved:false,createdAt:new Date().toISOString()};const rs=get(STORE.reviews,[]);rs.unshift(r);set(STORE.reviews,rs);const cs=get(STORE.clients,[]);cs.unshift({id:r.id,name:r.name,email:r.email,createdAt:r.createdAt});set(STORE.clients,cs);e.target.reset();renderReviews();alert('Review submitted. Thank you — it will appear after owner approval.');};renderReviews();}
+function admin(){const modal=document.getElementById('admin');document.getElementById('adminOpen').onclick=()=>modal.classList.add('show');document.querySelector('[data-admin-close]').onclick=()=>modal.classList.remove('show');document.getElementById('adminLogin').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),saved=get(STORE.owner,null);if(!saved){set(STORE.owner,{email:f.get('email'),password:f.get('password')});showAdmin();alert('Owner account created on this browser.');}else if(saved.email===f.get('email')&&saved.password===f.get('password'))showAdmin();else alert('Owner login details do not match this browser.');};function showAdmin(){document.getElementById('adminLogin').style.display='none';const panel=document.getElementById('adminPanel');const rs=get(STORE.reviews,[]),cs=get(STORE.clients,[]);panel.innerHTML='<h3>REVIEW MANAGEMENT</h3>'+ (rs.length?rs.map(r=>`<div class="admin-review"><strong>${esc(r.name)} • ${stars(r.rating)}</strong><p>${esc(r.comment)}</p><div class="admin-actions">${r.approved?'':'<button class="approve" data-a="'+r.id+'">APPROVE</button>'}<button data-d="${r.id}">DELETE</button></div></div>`).join(''):'<p>No reviews.</p>')+'<h3 style="margin-top:35px">CLIENT DATABASE</h3>'+cs.map(c=>`<div class="client-row"><strong>${esc(c.name)}</strong><span>${esc(c.email||'No email')}</span></div>`).join('');panel.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const a=get(STORE.reviews,[]),r=a.find(x=>x.id===b.dataset.a);if(r)r.approved=true;set(STORE.reviews,a);renderReviews();showAdmin();});panel.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{set(STORE.reviews,get(STORE.reviews,[]).filter(x=>x.id!==b.dataset.d));renderReviews();showAdmin();});}}
+slideshow(document.querySelector('[data-slideshow="sponsor"]'),sponsorship);booking();reviews();admin();
