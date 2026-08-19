@@ -1,17 +1,12 @@
-CROSSES & CLIPPERS — V5 PROFESSIONAL MEDIA + BOOKINGS + REVIEWS
+CROSSES & CLIPPERS — HERO ANIMATION UPDATE
 
-Included:
-- V4-inspired dark/cream/gold visual system retained.
-- Compact interactive slideshow with arrows, dots and mobile swipe for sponsorship media.
-- High-quality supplied photos only; the article screenshot and lower-quality/less useful duplicates are not used in the media slideshow.
-- My Story uses the supplied compressed 3-minute video and a compact article/story layout.
-- The Alberton Record article is linked from My Story.
-- No text referring to media being "reserved for V5" remains.
-- Booking form copies the exact submitted appointment information into both WhatsApp and email.
-- Professional client review display with rating summary and owner approval workflow.
-- Owner login and client records are stored locally for this static GitHub Pages package.
+This add-on replaces the current Hero animation with a more recognizable Crosses & Clippers visual: a floating cross, animated hair clipper, orbit rings, sparks and scanning light lines.
 
-IMPORTANT:
-A static GitHub Pages site cannot securely store a real shared client database or owner credentials on a server by itself. This package provides a working browser-local owner/review/client workflow. For a secure multi-device database, connect Supabase/Firebase before collecting sensitive client information.
+It does NOT change the site's layout, text, business sections, My Work, Partner With Us, booking, reviews, or other functionality.
 
-Replace the site's existing files with this package's files/assets.
+INSTALLATION:
+1. Replace the existing .hero-animation element in index.html with the contents of hero-animation-snippet.html.
+2. Add hero-animation.css after your existing stylesheet link, or copy its CSS into style.css.
+3. Keep the existing .hero-content and other Hero elements exactly as they are.
+
+The animation is CSS/SVG only — no external image or video is required.
