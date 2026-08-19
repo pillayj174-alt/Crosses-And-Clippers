@@ -3,16 +3,21 @@ const HAS_SUPABASE=Boolean(window.supabase&&CFG.url&&CFG.anonKey&&!String(CFG.ur
 const sb=HAS_SUPABASE?window.supabase.createClient(CFG.url,CFG.anonKey):null;
 const WA='27716369939', EMAIL='Davianbenjamin67@gmail.com';
 const STORE={reviews:'cc_reviews_v5',clients:'cc_clients_v5',appointments:'cc_appointments_v5',owner:'cc_owner_v5'};
+const work=[
+ ['img','assets/img/work-01.jpg','MY WORK • CUT 01'],
+ ['img','assets/img/work-02.jpg','MY WORK • CUT 02'],
+ ['img','assets/img/work-03.jpg','MY WORK • CUT 03']
+];
 const sponsorship=[
  ['img','assets/img/sponsor-01.jpg','LEGENDS BARBER • PHOTO 01'],['img','assets/img/sponsor-02.jpg','LEGENDS BARBER • PHOTO 02'],['img','assets/img/sponsor-03.jpg','LEGENDS BARBER • PHOTO 03'],['img','assets/img/sponsor-04.jpg','LEGENDS BARBER • PHOTO 04'],['img','assets/img/sponsor-05.jpg','LEGENDS BARBER • PHOTO 05'],['img','assets/img/sponsor-06.jpg','LEGENDS BARBER • ARTICLE PHOTO'],
- ['video','assets/video/VID-20260818-WA0023.mp4','LEGENDS BARBER • VIDEO 01','assets/posters/VID-20260818-WA0023.jpg'],['video','assets/video/VID-20260818-WA0024.mp4','LEGENDS BARBER • VIDEO 02','assets/posters/VID-20260818-WA0024.jpg'],['video','assets/video/VID-20260818-WA0027.mp4','LEGENDS BARBER • VIDEO 03','assets/posters/VID-20260818-WA0027.jpg'],['video','assets/video/VID-20260818-WA0080.mp4','LEGENDS BARBER • VIDEO 04','assets/posters/VID-20260818-WA0080.jpg'],['video','assets/video/VID-20260818-WA0082.mp4','LEGENDS BARBER • VIDEO 05','assets/posters/VID-20260818-WA0082.jpg']
+ ['video','assets/video/VID-20260818-WA0023.mp4','LEGENDS BARBER • VIDEO 01','assets/posters/VID-20260818-WA0023.jpg'],['video','assets/video/VID-20260818-WA0024.mp4','LEGENDS BARBER • VIDEO 02','assets/posters/VID-20260818-WA0024.jpg'],['video','assets/video/VID-20260818-WA0027.mp4','LEGENDS BARBER • VIDEO 03','assets/posters/VID-20260818-WA0027.jpg'],['video','assets/video/VID-20260818-WA0080.mp4','LEGENDS BARBER • VIDEO 04','assets/posters/VID-20260818-WA0080.jpg'],['video','assets/video/VID-20260818-WA0082.mp4','LEGENDS BARBER • VIDEO 05','assets/posters/VID-20260818-WA0082.jpg'],
+ ['video','assets/video/VID-20260818-WA0093.mp4','LEGENDS BARBER • VIDEO 06','assets/posters/VID-20260818-WA0093.jpg'],['video','assets/video/VID-20260818-WA0102.mp4','LEGENDS BARBER • VIDEO 07','assets/posters/VID-20260818-WA0102.jpg'],['video','assets/video/VID-20260818-WA0108.mp4','LEGENDS BARBER • VIDEO 08','assets/posters/VID-20260818-WA0108.jpg']
 ];
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const stars=n=>{n=Math.max(0,Math.min(5,Number(n)||0));return '★'.repeat(n)+'☆'.repeat(5-n)};
 const localGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
 const localSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 function notify(message){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200)}
-
 function slideshow(root,items){
  if(!root)return;const slides=root.querySelector('.slides'),dots=root.querySelector('.dots'),counter=root.querySelector('.slide-counter');let i=0;
  slides.innerHTML=items.map((x,n)=>x[0]==='img'?`<figure class="slide ${n===0?'active':''}"><img src="${x[1]}" alt="${esc(x[2])}" loading="${n?'lazy':'eager'}"><figcaption>${esc(x[2])}</figcaption></figure>`:`<figure class="slide ${n===0?'active':''}"><video controls playsinline preload="none" poster="${x[3]||''}"><source src="${x[1]}" type="video/mp4"></video><figcaption>${esc(x[2])}</figcaption></figure>`).join('');
@@ -22,7 +27,6 @@ function slideshow(root,items){
  let sx=0;slides.addEventListener('touchstart',e=>sx=e.changedTouches[0].screenX,{passive:true});slides.addEventListener('touchend',e=>{const dx=e.changedTouches[0].screenX-sx;if(Math.abs(dx)>45)go(i+(dx<0?1:-1))});
  root.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(i-1);if(e.key==='ArrowRight')go(i+1)});root.tabIndex=0;go(0);
 }
-
 function booking(){
  const modal=document.getElementById('booking'),form=document.getElementById('bookingForm'),view=document.getElementById('bookingFormView'),previewView=document.getElementById('bookingPreviewView'),preview=document.getElementById('bookingPreview'),wa=document.getElementById('sendWhatsApp'),mail=document.getElementById('sendEmail');
  document.querySelectorAll('[data-book]').forEach(b=>b.onclick=()=>{modal.classList.add('show');view.hidden=false;previewView.hidden=true});document.querySelector('[data-close]').onclick=()=>modal.classList.remove('show');
@@ -35,7 +39,6 @@ function booking(){
  view.hidden=true;previewView.hidden=false;
  };
 }
-
 async function fetchApprovedReviews(){
  if(sb){const {data,error}=await sb.from('reviews').select('*').eq('status','approved').order('created_at',{ascending:false});if(!error)return data||[];console.warn(error)}
  return localGet(STORE.reviews,[]).filter(r=>r.status==='approved'||r.approved===true).sort((a,b)=>new Date(b.created_at||b.createdAt)-new Date(a.created_at||a.createdAt));
@@ -47,7 +50,6 @@ async function renderReviews(){
 function setupStars(){const buttons=[...document.querySelectorAll('.star-picker button')],value=document.getElementById('ratingValue');buttons.forEach(b=>b.onclick=()=>{const n=+b.dataset.rate;value.value=n;buttons.forEach(x=>x.classList.toggle('active',+x.dataset.rate<=n))});}
 async function submitReview(row){if(sb){const {error}=await sb.from('reviews').insert({name:row.name,email:row.email||null,rating:row.rating,comment:row.comment,status:'pending'});if(error)throw error;return}const rs=localGet(STORE.reviews,[]);rs.unshift({id:crypto.randomUUID(),...row,status:'pending',created_at:new Date().toISOString()});localSet(STORE.reviews,rs);const cs=localGet(STORE.clients,[]);if(row.email&&!cs.some(c=>c.email===row.email)){cs.unshift({id:crypto.randomUUID(),name:row.name,email:row.email,created_at:new Date().toISOString()});localSet(STORE.clients,cs)}}
 function reviews(){setupStars();document.getElementById('reviewForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),rating=Number(f.get('rating'));if(!rating){notify('Please choose a star rating.');return}const row={name:String(f.get('name')).trim(),email:String(f.get('email')||'').trim(),rating,comment:String(f.get('comment')).trim()};try{await submitReview(row);e.target.reset();document.querySelectorAll('.star-picker button').forEach(x=>x.classList.remove('active'));document.getElementById('reviewStatus').textContent='Thank you. Your review has been submitted for approval.';notify('Review submitted successfully.');await renderReviews()}catch(err){console.error(err);notify('We could not submit the review. Please try again.')}};renderReviews()}
-
 async function getOwnerSession(){if(sb){const {data}=await sb.auth.getSession();return data.session}return localGet(STORE.owner,null)?{local:true}:null}
 async function admin(){
  const modal=document.getElementById('admin'),loginView=document.getElementById('adminLoginView'),panel=document.getElementById('adminPanel'),form=document.getElementById('adminLogin');document.getElementById('adminOpen').onclick=()=>modal.classList.add('show');document.querySelector('[data-admin-close]').onclick=()=>modal.classList.remove('show');
@@ -69,5 +71,6 @@ async function admin(){
  async function setReviewStatus(id,status){if(sb){await sb.from('reviews').update({status}).eq('id',id)}else{const rs=localGet(STORE.reviews,[]);const r=rs.find(x=>x.id===id);if(r){r.status=status;r.approved=status==='approved'}localSet(STORE.reviews,rs)}}
  async function deleteReview(id){if(sb){await sb.from('reviews').delete().eq('id',id)}else localSet(STORE.reviews,localGet(STORE.reviews,[]).filter(r=>r.id!==id))}
 }
-
-slideshow(document.querySelector('[data-slideshow="sponsor"]'),sponsorship);booking();reviews();admin();
+slideshow(document.querySelector('[data-slideshow="work"]'),work);
+slideshow(document.querySelector('[data-slideshow="sponsor"]'),sponsorship);
+booking();reviews();admin();
